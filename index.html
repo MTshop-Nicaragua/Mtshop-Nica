@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MT SHOP ONLINE</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui;margin:0;padding:0}
+body{background:#f1f5f9;padding-bottom:90px}
+header{background:#0f172a;color:#fff;padding:14px 12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20}
+.ofertas-wrap{display:flex;gap:12px;overflow:auto;padding:12px}
+.card-oferta{min-width:180px;background:#fff;border-radius:18px;padding:10px;border:2px solid #ffedd5;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}
+.card{background:#fff;border-radius:18px;padding:10px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.card img,.card-oferta img{width:100%;height:120px;object-fit:contain;background:#fff;border-radius:12px}
+.price{color:#16a34a;font-weight:900}
+.old{text-decoration:line-through;color:#94a3b8;font-size:12px}
+button{cursor:pointer}
+#bar{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ddd;z-index:30}
+</style>
+</head>
+<body>
+<header><b id="logo">MT SHOP ONLINE</b><div style="display:flex;gap:8px"><span id="cart" onclick="openCart()" style="background:#fff;color:#0f172a;padding:6px 14px;border-radius:20px;font-weight:900">🛒 0</span><span style="background:#ef4444;color:#fff;padding:6px 12px;border-radius:20px;font-weight:800;font-size:12px" id="offCount">0 OFERTAS</span></div></header>
+
+<div style="background:#0f172a;color:#fff;padding:16px">
+<h2>🔥 Ofertas que vuelan</h2>
+<input id="q" placeholder="Buscar..." style="width:100%;padding:12px;border-radius:12px;border:none;margin-top:10px" oninput="render()">
+</div>
+
+<div id="ofertas" class="ofertas-wrap"></div>
+
+<div style="padding:12px 12px 0"><b>📦 Todos los Productos</b></div>
+<div id="g" class="grid"></div>
+
+<div id="bar"><div><b id="total">C$0</b><br><small id="count">0 prod</small></div><button onclick="wa()" style="background:#22c55e;color:#fff;border:none;padding:12px 20px;border-radius:12px;font-weight:900">WhatsApp</button></div>
+
+<div id="cartModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;padding:12px"><div style="background:#fff;border-radius:18px;max-width:400px;margin:20px auto;padding:16px"><div style="display:flex;justify-content:space-between"><h3>Carrito</h3><button onclick="closeCart()" style="padding:6px 12px;border-radius:8px;border:none">X</button></div><div id="cartList" style="margin-top:10px"></div><hr style="margin:12px 0"><b id="cartTotal">C$0</b><button onclick="wa()" style="width:100%;margin-top:10px;padding:12px;background:#22c55e;color:#fff;border:none;border-radius:12px;font-weight:900">Pedir WhatsApp</button></div></div>
+
+<div id="admin" style="display:none;padding:20px;background:#fff;min-height:100vh;position:fixed;inset:0;z-index:100;overflow:auto">
+<h2>Admin - Agregar Producto</h2>
+<input id="n" placeholder="Nombre producto" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:10px">
+<input id="p" type="number" placeholder="Precio oferta C$" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:10px">
+<input id="po" type="number" placeholder="Precio antes C$ (opcional)" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:10px">
+<input type="file" id="fileImg" accept="image/*"><div id="preview" style="margin:8px 0"></div>
+<input id="img" placeholder="o link https:// (opcional)" style="width:100%;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:10px">
+<label><input type="checkbox" id="isOff"> ¿Es OFERTA?</label>
+<button onclick="addP()" style="width:100%;padding:14px;background:#0f172a;color:#fff;border:none;border-radius:12px;margin-top:10px;font-weight:900">GUARDAR - LE SALE A TODOS</button>
+<div id="list" style="margin-top:20px"></div>
+<button onclick="location.href=location.pathname" style="width:100%;margin-top:20px;padding:10px">Ver tienda</button>
+</div>
+
+<script>
+// === BASE LOCAL PARA QUE SIEMPRE SE VEA ALGO ===
+let prods = JSON.parse(localStorage.getItem('mt_prods')||'[]');
+if(prods.length==0){
+ prods = [ ]
+ localStorage.setItem('mt_prods', JSON.stringify(prods));
+}
+let car=[]; let imgBase64="";
+document.getElementById('fileImg').addEventListener('change', e=>{
+ let r=new FileReader(); r.onload=ev=>{imgBase64=ev.target.result; document.getElementById('preview').innerHTML=`<img src="${imgBase64}" style="width:100%;max-height:150px;border-radius:10px">`; document.getElementById('img').value=imgBase64;}; r.readAsDataURL(e.target.files[0]);
+});
+
+function save(){localStorage.setItem('mt_prods', JSON.stringify(prods));}
+
+function render(){
+ let q=(document.getElementById('q').value||"").toLowerCase();
+ let f=prods.filter(x=>x.n.toLowerCase().includes(q));
+ let off=f.filter(x=>x.off);
+ document.getElementById('offCount').innerText=off.length+' OFERTAS';
+ document.getElementById('ofertas').innerHTML=off.map(x=>`<div class="card-oferta"><span style="background:#ef4444;color:#fff;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:900">OFERTA</span><img src="${x.img}"><h4 style="font-size:13px;margin:6px 0">${x.n}</h4><div><span class="price">C$${x.p}</span> <span class="old">${x.po?'C$'+x.po:''}</span></div><button onclick="toCar(${x.id})" style="width:100%;margin-top:8px;background:#ef4444;color:#fff;border:none;padding:8px;border-radius:10px;font-weight:800">🔥 Comprar</button></div>`).join('')||'<small style="padding:12px;color:#999">No hay ofertas</small>';
+ document.getElementById('g').innerHTML=f.map(x=>`<div class="card"><span style="background:${x.off?'#ef4444':'#e2e8f0'};color:${x.off?'#fff':'#000'};padding:3px 8px;border-radius:20px;font-size:11px;font-weight:800">${x.off?'OFERTA':''}</span><img src="${x.img}"><h4 style="font-size:14px;margin:6px 0">${x.n}</h4><div><span class="price">C$${x.p}</span> <span class="old">${x.po?'C$'+x.po:''}</span></div><button onclick="toCar(${x.id})" style="width:100%;margin-top:8px;background:#0f172a;color:#fff;border:none;padding:10px;border-radius:12px;font-weight:800">Agregar</button></div>`).join('');
+ renderAdmin();
+}
+function toCar(id){let p=prods.find(a=>a.id==id); if(p)car.push(p); upd();}
+function upd(){document.getElementById('cart').innerText='🛒 '+car.length; document.getElementById('count').innerText=car.length+' prod'; let t=car.reduce((s,a)=>s+a.p,0); document.getElementById('total').innerText='C$'+t; document.getElementById('cartTotal').innerText='C$'+t; if(car.length)document.getElementById('cartList').innerHTML=car.map((x,i)=>`<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #eee"><img src="${x.img}" style="width:45px;height:45px;border-radius:8px;object-fit:cover"><div style="flex:1"><b style="font-size:12px">${x.n}</b><br><span style="color:green">C$${x.p}</span></div><button onclick="car.splice(${i},1);upd();openCart()" style="background:#ef4444;color:#fff;border:none;padding:4px 8px;border-radius:6px">X</button></div>`).join('');}
+function openCart(){document.getElementById('cartModal').style.display='block'; upd();}
+function closeCart(){document.getElementById('cartModal').style.display='none';}
+function wa(){if(!car.length)return alert('Carrito vacío'); let t='Hola MT SHOP!%0A'; car.forEach((a,i)=>t+=`${i+1}. ${a.n} C$${a.p}%0A`); t+=`Total: ${document.getElementById('total').innerText}`; window.open('https://wa.me/50578346436?text='+t,'_blank');}
+function addP(){let n=document.getElementById('n').value, p=parseInt(document.getElementById('p').value), po=parseInt(document.getElementById('po').value)||0, img=document.getElementById('img').value||'https://via.placeholder.com/500', off=document.getElementById('isOff').checked?1:0; if(!n||!p)return alert('Falta nombre y precio'); prods.unshift({id:Date.now(),n,p,po,img,off}); save(); render(); ['n','p','po','img'].forEach(i=>document.getElementById(i).value=''); document.getElementById('preview').innerHTML=''; alert('¡Guardado! Ahora ya le sale a todos cuando subas a Netlify');}
+function renderAdmin(){document.getElementById('list').innerHTML=prods.map((x,i)=>`<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #eee"><img src="${x.img}" style="width:50px;height:50px;border-radius:8px"><div style="flex:1"><b>${x.n}</b><br>C$${x.p}</div><button onclick="prods.splice(${i},1);save();render()" style="background:#ef4444;color:#fff;border:none;padding:6px 10px;border-radius:8px">X</button></div>`).join('');}
+let clicks=0; document.getElementById('logo').onclick=()=>{clicks++; if(clicks>=5)checkAdmin(); setTimeout(()=>clicks=0,2000);}
+function checkAdmin(){let c=prompt('Clave admin:'); if(c=='reuwvyhltm996745'){document.getElementById('admin').style.display='block';}else alert('Clave incorrecta');}
+if(location.search.includes('admin'))checkAdmin();
+render();
+</script>
+</body>
+</html>
+<button onclick="document.getElementById('aboutCreator').style.display='block'" style="background:none; border:none; color:#2563eb; font-weight:700">Sobre el creador</button>
+<!-- SOBRE EL CREADOR -->
+<div id="aboutCreator" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f8fafc; z-index:9999; padding:20px; overflow:auto">
+  <div style="max-width:500px; margin:40px auto; background:white; padding:30px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.1); text-align:center">
+    
+    <div style="width:80px; height:80px; background:#2563eb; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; color:white; font-size:40px; font-weight:900">MT</div>
+    
+    <h2 style="margin-top:15px; color:#1e293b">Sobre el creador</h2>
+    
+    <p style="color:#64748b; line-height:1.7; margin-top:15px; font-size:15px">
+      <b>MT SHOP</b> fue creada con el objetivo de llevar productos de calidad a todo Nicaragua a precios accesibles.<br><br>
+      Comprometidos con un servicio rápido, seguro y confiable.<br><br>
+      Gracias por ser parte de MT SHOP.
+    </p>
+
+    <p style="margin-top:20px; font-weight:800; color:#2563eb">🇳🇮 Hecho en Nicaragua</p>
+
+    <button onclick="document.getElementById('aboutCreator').style.display='none'" style="margin-top:25px; width:100%; padding:14px; background:#1e293b; color:white; border:none; border-radius:12px; font-weight:700">Cerrar</button>
+  </div>
+</div>
